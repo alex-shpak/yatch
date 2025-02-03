@@ -1,15 +1,16 @@
-# Yatch (yaml patch)
-Yatch is a cli tool and a library to patch yaml files without editing its formatting
+# Yatch (YAML patch)
+A CLI and a library to patch YAML files while preserving formatting.
 
 # Usage
 ## Usage as CLI
 ```
-yatch [-in] [-out] '.path.to' 'qwerty'
+go install github.com/alex-shpak/yatch/cmd/yatch@latest
+yatch [-in=file] [-out=file] '.spec.image.tag' 'qwerty'
 ```
 
 ## Usage as library
 ```shell
-go get github.com/alex-shpak/yatch
+go get github.com/alex-shpak/yatch/lib/yatch
 ```
 
 ```go
