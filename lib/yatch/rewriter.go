@@ -12,6 +12,7 @@ type (
 		Copy() error
 		Discard(n int) error
 		Write(write []byte) error
+		WriteString(write string) error
 	}
 
 	rewriter struct {
@@ -74,4 +75,8 @@ func (rw *rewriter) Write(bytes []byte) error {
 		return err
 	}
 	return nil
+}
+
+func (rw *rewriter) WriteString(write string) error {
+	return rw.Write([]byte(write))
 }

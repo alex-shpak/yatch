@@ -13,12 +13,12 @@ const inputFile = `
 key: value
 list:
   - "item0"
-  - item11
+  - 'item11'
   - item222
 object:
   # comments
-  key0: value0
-  key1: value11
+  key0: true
+  key1: 21
   key2:
     value222
     # comments
@@ -43,32 +43,6 @@ func TestFile(t *testing.T) {
 		return
 	}
 
-	t.Run("Find", func(t *testing.T) {
-		nodes, err := file.Find("$.list")
-		if err != nil {
-			t.Error(err)
-			return
-		}
-
-		if len(nodes) != 3 {
-			t.Errorf("expected 3 nodes in 'list', got %d", len(nodes))
-			return
-		}
-	})
-
-	t.Run("Find", func(t *testing.T) {
-		nodes, err := file.Find("$.list[*]")
-		if err != nil {
-			t.Error(err)
-			return
-		}
-
-		if len(nodes) != 3 {
-			t.Errorf("expected 3 nodes in 'list', got %d", len(nodes))
-			return
-		}
-	})
-
 	t.Run("Patch List", func(t *testing.T) {
 		if err := file.Patch("$.list[*]", "patched"); err != nil {
 			t.Error(err)
@@ -76,7 +50,7 @@ func TestFile(t *testing.T) {
 		}
 
 		t.Log(string(file.Content()))
-		if checksum := checksum(file.Content()); checksum != "cbf70a8f25340aa96df1f1abd199d5bb" {
+		if checksum := checksum(file.Content()); checksum != "7ffca437780e24301be4b48f278da04f" {
 			t.Errorf("checksum mismatch, expected: %s", checksum)
 			return
 		}
@@ -89,7 +63,7 @@ func TestFile(t *testing.T) {
 		}
 
 		t.Log(string(file.Content()))
-		if checksum := checksum(file.Content()); checksum != "56b583d2cfd9fa8760dec7d646e53172" {
+		if checksum := checksum(file.Content()); checksum != "b25063e19e6a931dc5d67af595d2c054" {
 			t.Errorf("checksum mismatch, expected: %s", checksum)
 			return
 		}
@@ -97,13 +71,13 @@ func TestFile(t *testing.T) {
 	})
 
 	t.Run("Patch Json", func(t *testing.T) {
-		if err := file.Patch("$.json.value", "patched"); err != nil {
+		if err := file.Patch("$.json.key", "patched"); err != nil {
 			t.Error(err)
 			return
 		}
 
 		t.Log(string(file.Content()))
-		if checksum := checksum(file.Content()); checksum != "56b583d2cfd9fa8760dec7d646e53172" {
+		if checksum := checksum(file.Content()); checksum != "466703bb0d0b985fc9cbc94c06b980d0" {
 			t.Errorf("checksum mismatch, expected: %s", checksum)
 			return
 		}
