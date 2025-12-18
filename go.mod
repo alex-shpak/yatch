@@ -1,10 +1,5 @@
 module github.com/alex-shpak/yatch
 
-go 1.22.2
+go 1.25.4
 
-require (
-	github.com/vmware-labs/yaml-jsonpath v0.3.2
-	gopkg.in/yaml.v3 v3.0.1
-)
-
-require github.com/dprotaso/go-yit v0.0.0-20191028211022-135eb7262960 // indirect
+require github.com/goccy/go-yaml v1.15.13

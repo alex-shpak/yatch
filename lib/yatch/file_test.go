@@ -44,7 +44,20 @@ func TestFile(t *testing.T) {
 	}
 
 	t.Run("Find", func(t *testing.T) {
-		nodes, err := file.Find("list[*]")
+		nodes, err := file.Find("$.list")
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		if len(nodes) != 3 {
+			t.Errorf("expected 3 nodes in 'list', got %d", len(nodes))
+			return
+		}
+	})
+
+	t.Run("Find", func(t *testing.T) {
+		nodes, err := file.Find("$.list[*]")
 		if err != nil {
 			t.Error(err)
 			return
@@ -57,26 +70,26 @@ func TestFile(t *testing.T) {
 	})
 
 	t.Run("Patch List", func(t *testing.T) {
-		if err := file.Patch("list[*]", "patched"); err != nil {
+		if err := file.Patch("$.list[*]", "patched"); err != nil {
 			t.Error(err)
 			return
 		}
 
 		t.Log(string(file.Content()))
-		if checksum := checksum(file.Content()); checksum != "de52c1b69ffd3ac8eeecb9870b301fdf" {
+		if checksum := checksum(file.Content()); checksum != "cbf70a8f25340aa96df1f1abd199d5bb" {
 			t.Errorf("checksum mismatch, expected: %s", checksum)
 			return
 		}
 	})
 
 	t.Run("Patch Object", func(t *testing.T) {
-		if err := file.Patch("object.key2", "patched"); err != nil {
+		if err := file.Patch("$.object.key2", "patched"); err != nil {
 			t.Error(err)
 			return
 		}
 
 		t.Log(string(file.Content()))
-		if checksum := checksum(file.Content()); checksum != "027febd0ee840a0e6189ad97e137548a" {
+		if checksum := checksum(file.Content()); checksum != "56b583d2cfd9fa8760dec7d646e53172" {
 			t.Errorf("checksum mismatch, expected: %s", checksum)
 			return
 		}
@@ -84,29 +97,20 @@ func TestFile(t *testing.T) {
 	})
 
 	t.Run("Patch Json", func(t *testing.T) {
-		if err := file.Patch("json.value", "patched"); err != nil {
+		if err := file.Patch("$.json.value", "patched"); err != nil {
 			t.Error(err)
 			return
 		}
 
 		t.Log(string(file.Content()))
-		if checksum := checksum(file.Content()); checksum != "027febd0ee840a0e6189ad97e137548a" {
+		if checksum := checksum(file.Content()); checksum != "56b583d2cfd9fa8760dec7d646e53172" {
 			t.Errorf("checksum mismatch, expected: %s", checksum)
-			return
-		}
-
-	})
-
-	t.Run("Patch Slice", func(t *testing.T) {
-		err := file.Patch("list", "patched")
-		if err == nil {
-			t.Error("Must return and error for lists")
 			return
 		}
 	})
 
 	t.Run("Patch Map", func(t *testing.T) {
-		err := file.Patch("object", "patched")
+		err := file.Patch("$.object", "patched")
 		if err == nil {
 			t.Error("Must return and error for maps")
 			return
@@ -114,7 +118,7 @@ func TestFile(t *testing.T) {
 	})
 
 	t.Run("Patch Literal Multiline", func(t *testing.T) {
-		err := file.Patch("multiline.line0", "patched")
+		err := file.Patch("$.multiline.line0", "patched")
 		if err == nil {
 			t.Error("Must return and error for literal value")
 			return
@@ -122,7 +126,7 @@ func TestFile(t *testing.T) {
 	})
 
 	t.Run("Patch Folded Multiline", func(t *testing.T) {
-		err := file.Patch("multiline.line1", "patched")
+		err := file.Patch("$.multiline.line1", "patched")
 		if err == nil {
 			t.Error("Must return and error for folded value")
 			return
