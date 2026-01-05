@@ -10,9 +10,9 @@ import (
 )
 
 const inputFile = `
-key: value
+key: value # comment
 list:
-  - "item0"
+  - "item0" # comment
   - 'item11'
   - item222
 object:
@@ -20,8 +20,7 @@ object:
   key0: true
   key1: 21
   key2:
-    value222
-    # comments
+    value222 # comment
 json: { "key": "value" }
 multiline:
   line0: |
@@ -50,8 +49,8 @@ func TestFile(t *testing.T) {
 		}
 
 		t.Log(string(file.Content()))
-		if checksum := checksum(file.Content()); checksum != "7ffca437780e24301be4b48f278da04f" {
-			t.Errorf("checksum mismatch, expected: %s", checksum)
+		if checksum := checksum(file.Content()); checksum != "f407ed29f9287e02d5527b8f38019348" {
+			t.Errorf("checksum mismatch, got: %s", checksum)
 			return
 		}
 	})
@@ -63,8 +62,8 @@ func TestFile(t *testing.T) {
 		}
 
 		t.Log(string(file.Content()))
-		if checksum := checksum(file.Content()); checksum != "b25063e19e6a931dc5d67af595d2c054" {
-			t.Errorf("checksum mismatch, expected: %s", checksum)
+		if checksum := checksum(file.Content()); checksum != "123785f69652a177f40145cbed577270" {
+			t.Errorf("checksum mismatch, got: %s", checksum)
 			return
 		}
 
@@ -77,8 +76,8 @@ func TestFile(t *testing.T) {
 		}
 
 		t.Log(string(file.Content()))
-		if checksum := checksum(file.Content()); checksum != "466703bb0d0b985fc9cbc94c06b980d0" {
-			t.Errorf("checksum mismatch, expected: %s", checksum)
+		if checksum := checksum(file.Content()); checksum != "bcf753a12943203f6e69aee11e22f622" {
+			t.Errorf("checksum mismatch, got: %s", checksum)
 			return
 		}
 	})
@@ -103,6 +102,19 @@ func TestFile(t *testing.T) {
 		err := file.Patch("$.multiline.line1", "patched")
 		if err == nil {
 			t.Error("Must return and error for folded value")
+			return
+		}
+	})
+
+	t.Run("Patch Comment Multiline", func(t *testing.T) {
+		if err := file.PatchComment("$.key", "patched"); err != nil {
+			t.Error(err)
+			return
+		}
+
+		t.Log(string(file.Content()))
+		if checksum := checksum(file.Content()); checksum != "c537445eba30451ffaf1f709af210660" {
+			t.Errorf("checksum mismatch, got: %s", checksum)
 			return
 		}
 	})

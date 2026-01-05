@@ -2,7 +2,6 @@ package yatch
 
 import (
 	"bytes"
-	"errors"
 	"io"
 
 	"github.com/goccy/go-yaml"
@@ -47,15 +46,17 @@ func (file *YAMLFile) Find(jsonpath string) (ast.Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	switch node := node.(type) {
-		case *ast.SequenceNode:
-			if len(node.Values) == 0 {
-				return nil, yaml.ErrNotFoundNode
-			}
-			return node.Values[0], nil
-		default:
-			return node, nil
+	case *ast.StringNode, *ast.IntegerNode, *ast.FloatNode, *ast.BoolNode, *ast.NullNode:
+		return node, nil
+	case *ast.SequenceNode:
+		if len(node.Values) == 0 {
+			return nil, ErrNodeNotFound
+		}
+		return node.Values[0], nil
+	default:
+		return node, ErrNodeTypeUnsupported
 	}
 }
 
@@ -65,44 +66,58 @@ func (file *YAMLFile) Patch(jsonpath, value string) error {
 		return err
 	}
 
-	switch node.(type) {
-	case *ast.StringNode, *ast.IntegerNode, *ast.FloatNode, *ast.BoolNode, *ast.NullNode:
-	default:
-		return errors.ErrUnsupported
-	}
-
-	switch (node.GetToken()).Type {
-	case token.MappingKeyType, token.SequenceStartType, token.MappingStartType:
-		return errors.ErrUnsupported
-	}
-
-	if err := file.Replace(node, value); err != nil {
-		return err
-	}
-	
-	return nil
+	token := (*Token)(node.GetToken())
+	return file.Replace(token, value)
 }
 
-func (file *YAMLFile) Replace(node ast.Node, value string) error {
+func (file *YAMLFile) PatchComment(jsonpath, value string) error {
+	node, err := file.Find(jsonpath)
+	if err != nil {
+		return err
+	}
+
+	switch node.GetToken().NextType() {
+	case token.CommentType:
+		// continue
+	default:
+		return ErrTokenNotFound
+	}
+
+	next := node.GetToken().Next
+	return file.Replace((*Token)(next), value)
+}
+
+func (file *YAMLFile) Replace(token *Token, value string) error {
 	content := bytes.Buffer{}
 	rewriter := NewRewriter(
 		bytes.NewReader(file.content),
 		&content,
 	)
 
-	tkn := (*Token)(node.GetToken())
-	
-	value = tkn.Render(value)
-	discard := tkn.Len()
+	discard := token.Len()
+	value = token.Render(value)
 
-	rewriter.CopyLines(tkn.Position.Line) // Copy lines before yaml node
-	rewriter.CopyBytes(tkn.Position.Column) // Copy bytes before yaml node
-	rewriter.Discard(discard) // Discard original yaml node
-	rewriter.WriteString(value) // Write new value
-	rewriter.Copy() // Copy the rest of the content
+	if err := rewriter.CopyLines(token.Position.Line); err != nil { // Copy lines before yaml node
+		return err
+	}
 
-	file.setContent(content.Bytes())
-	return nil
+	if err := rewriter.CopyBytes(token.Position.Column); err != nil { // Copy bytes before yaml node
+		return err
+	}
+
+	if err := rewriter.Discard(discard); err != nil { // Discard original yaml node
+		return err
+	}
+
+	if err := rewriter.WriteString(value); err != nil { // Write new value
+		return err
+	}
+
+	if err := rewriter.CopyAll(); err != nil { // Copy the rest of the content
+		return err
+	}
+
+	return file.setContent(content.Bytes())
 }
 
 func (file *YAMLFile) setContent(content []byte) error {

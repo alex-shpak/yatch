@@ -9,7 +9,7 @@ type (
 	Rewriter interface {
 		CopyLines(n int) error
 		CopyBytes(n int) error
-		Copy() error
+		CopyAll() error
 		Discard(n int) error
 		Write(write []byte) error
 		WriteString(write string) error
@@ -28,7 +28,7 @@ func NewRewriter(reader io.Reader, writer io.Writer) Rewriter {
 	}
 }
 
-func (rw *rewriter) Copy() error {
+func (rw *rewriter) CopyAll() error {
 	if _, err := rw.reader.WriteTo(rw.writer); err != nil {
 		return err
 	}

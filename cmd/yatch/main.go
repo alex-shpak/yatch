@@ -10,19 +10,23 @@ import (
 	"github.com/alex-shpak/yatch/lib/yatch"
 )
 
-func init() {
-	flag.String("in", "", "input file")
-	flag.String("out", "", "output file")
+var (
+	in, out *string
+	comment *bool
+)
+
+func main() {
+	in = flag.String("in", "", "input file")
+	out = flag.String("out", "", "output file")
+	comment = flag.Bool("comment", false, "update a comment attached to the node")
 
 	flag.Parse()
 
 	if len(flag.Args()) != 2 {
-		slog.Error("Usage: yatch [-in <input file>] [-out <output file>] <jsonpath> <value>")
+		slog.Error("Usage: yatch [-in <input file>] [-out <output file>] [--comment] <jsonpath> <value>")
 		os.Exit(1)
 	}
-}
 
-func main() {
 	if err := exec(); err != nil {
 		slog.Error("Fatal", "err", err)
 		os.Exit(1)
@@ -47,7 +51,12 @@ func exec() error {
 		return fmt.Errorf("error parsing input content, %w", err)
 	}
 
-	err = yamlfile.Patch(jsonpath, value)
+	if *comment {
+		err = yamlfile.PatchComment(jsonpath, value)
+	} else {
+		err = yamlfile.Patch(jsonpath, value)
+	}
+
 	if err != nil {
 		return fmt.Errorf("error patching file, %w", err)
 	}
@@ -61,19 +70,17 @@ func exec() error {
 }
 
 func reader() (reader io.ReadCloser, err error) {
-	inFlag := flag.Lookup("in")
-	if inFlag.Value.String() == "" {
+	if *in == "" {
 		return os.Stdin, nil
 	}
 
-	return os.Open(inFlag.Value.String())
+	return os.Open(*in)
 }
 
 func writer() (writer io.WriteCloser, err error) {
-	outFlag := flag.Lookup("out")
-	if outFlag.Value.String() == "" {
+	if *out == "" {
 		return os.Stdout, nil
 	}
 
-	return os.Create(outFlag.Value.String())
+	return os.Create(*out)
 }
