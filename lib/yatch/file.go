@@ -3,27 +3,26 @@ package yatch
 import (
 	"bytes"
 	"io"
+	"strings"
 
-	"github.com/goccy/go-yaml"
 	"github.com/goccy/go-yaml/ast"
 	"github.com/goccy/go-yaml/parser"
-	"github.com/goccy/go-yaml/token"
 )
 
-// YAMLFile represents a parsed YAML file and its content.
-type YAMLFile struct {
+// File represents a parsed YAML file and its content.
+type File struct {
 	content []byte
 	file    *ast.File
 }
 
 // NewFile creates a new YAMLFile from a reader.
-func NewFile(reader io.Reader) (*YAMLFile, error) {
+func NewFile(reader io.Reader) (*File, error) {
 	content, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}
 
-	file := &YAMLFile{}
+	file := &File{}
 	err = file.setContent(content)
 	if err != nil {
 		return nil, err
@@ -32,62 +31,15 @@ func NewFile(reader io.Reader) (*YAMLFile, error) {
 	return file, nil
 }
 
-func (file *YAMLFile) Content() []byte {
+func (file *File) Content() []byte {
 	return file.content
 }
 
-func (file *YAMLFile) Find(jsonpath string) (ast.Node, error) {
-	path, err := yaml.PathString(jsonpath)
-	if err != nil {
-		return nil, err
+func (file *File) Replace(token *Token, value string) error {
+	if strings.ContainsAny(value, "\r\n") { // a line break could add documents or keys around the token
+		return ErrValueMultiline
 	}
 
-	node, err := path.FilterFile(file.file)
-	if err != nil {
-		return nil, err
-	}
-
-	switch node := node.(type) {
-	case *ast.StringNode, *ast.IntegerNode, *ast.FloatNode, *ast.BoolNode, *ast.NullNode:
-		return node, nil
-	case *ast.SequenceNode:
-		if len(node.Values) == 0 {
-			return nil, ErrNodeNotFound
-		}
-		return node.Values[0], nil
-	default:
-		return node, ErrNodeTypeUnsupported
-	}
-}
-
-func (file *YAMLFile) Patch(jsonpath, value string) error {
-	node, err := file.Find(jsonpath)
-	if err != nil {
-		return err
-	}
-
-	token := (*Token)(node.GetToken())
-	return file.Replace(token, value)
-}
-
-func (file *YAMLFile) PatchComment(jsonpath, value string) error {
-	node, err := file.Find(jsonpath)
-	if err != nil {
-		return err
-	}
-
-	switch node.GetToken().NextType() {
-	case token.CommentType:
-		// continue
-	default:
-		return ErrTokenNotFound
-	}
-
-	next := node.GetToken().Next
-	return file.Replace((*Token)(next), value)
-}
-
-func (file *YAMLFile) Replace(token *Token, value string) error {
 	content := bytes.Buffer{}
 	rewriter := NewRewriter(
 		bytes.NewReader(file.content),
@@ -120,7 +72,7 @@ func (file *YAMLFile) Replace(token *Token, value string) error {
 	return file.setContent(content.Bytes())
 }
 
-func (file *YAMLFile) setContent(content []byte) error {
+func (file *File) setContent(content []byte) error {
 	parsed, err := parser.ParseBytes(content, 0) // Verify that file is still valid
 	if err != nil {
 		return err

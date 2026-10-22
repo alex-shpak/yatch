@@ -15,20 +15,24 @@ go install github.com/alex-shpak/yatch/cmd/yatch@latest
 yatch '$.image.tag' 'v1.2.3' < input.yaml > output.yaml
 
 # Update files in-place
-yatch -in values.yaml -out values.yaml '$.version' '2.0'
+yatch --in values.yaml --out values.yaml '$.version' '2.0'
 
 # Update a comment instead of the value
-yatch -in values.yaml --comment '$.service.port' 'Exposed port'
+yatch --in values.yaml --comment '$.service.port' 'Exposed port'
 
 # Pipe from other commands
 cat deployment.yaml | yatch '$.spec.replicas' '3'
+
+# Update the second document of a multi-document file
+yatch --document 1 '$.spec.replicas' '3' < manifests.yaml
 ```
 
 ### Options
 
-- `-in` - Input YAML file (default: stdin)
-- `-out` - Output YAML file (default: stdout)
+- `--in` - Input YAML file (default: stdin)
+- `--out` - Output YAML file (default: stdout)
 - `--comment` - Update comment attached to the node instead of the node value
+- `--document` - Index of the document to patch (default: first document)
 
 ## Library Usage
 
@@ -51,13 +55,14 @@ func main() {
     }
 
     // Patch a value
-    err = file.Patch("$.spec.image.tag", "v1.2.3")
+    doc := file.FirstDocument()
+    err = doc.Patch("$.spec.image.tag", "v1.2.3")
     if err != nil {
         panic(err)
     }
 
     // Patch a comment
-    err = file.PatchComment("$.spec.image.tag", "{\"$imagepolicy\": \"flux-system:my-policy\"}")
+    err = doc.PatchComment("$.spec.image.tag", "{\"$imagepolicy\": \"flux-system:my-policy\"}")
     if err != nil {
         panic(err)
     }

@@ -15,6 +15,7 @@ func main() {
 		in      = flag.String("in", "", "input YAML file (default: stdin)")
 		out     = flag.String("out", "", "output YAML file (default: stdout)")
 		comment = flag.Bool("comment", false, "update a comment instead of the node value")
+		doc     = flag.Int("document", -1, "index of the document to patch (default: first document)")
 	)
 
 	flag.Usage = func() {
@@ -31,10 +32,13 @@ Examples:
   %[1]s '$.image.tag' 'v1.2.3' < input.yaml > output.yaml
 
   # Update files in-place
-  %[1]s -in values.yaml -out values.yaml '$.image.tag' '2.0'
+  %[1]s --in values.yaml --out values.yaml '$.image.tag' '2.0'
 
   # Update a comment
   %[1]s --comment '$.service.port' 'Exposed port' < values.yaml
+
+  # Update the second document of a multi-document file
+  %[1]s --document 1 '$.spec.replicas' '3' < manifests.yaml
 `, os.Args[0])
 	}
 
@@ -45,13 +49,13 @@ Examples:
 		os.Exit(1)
 	}
 
-	if err := exec(*in, *out, *comment, flag.Arg(0), flag.Arg(1)); err != nil {
+	if err := exec(*in, *out, *doc, *comment, flag.Arg(0), flag.Arg(1)); err != nil {
 		slog.Error("Error", "err", err)
 		os.Exit(1)
 	}
 }
 
-func exec(in, out string, comment bool, jsonpath, value string) error {
+func exec(in, out string, doc int, comment bool, jsonpath, value string) error {
 	reader, err := reader(in)
 	if err != nil {
 		return fmt.Errorf("error opening input: %w", err)
@@ -63,10 +67,17 @@ func exec(in, out string, comment bool, jsonpath, value string) error {
 		return fmt.Errorf("error parsing input content: %w", err)
 	}
 
+	target := yamlfile.FirstDocument()
+	if docs := yamlfile.Documents(); doc >= len(docs) {
+		return fmt.Errorf("document %d not found, input has %d", doc, len(docs))
+	} else if doc >= 0 {
+		target = docs[doc]
+	}
+
 	if comment {
-		err = yamlfile.PatchComment(jsonpath, value)
+		err = target.PatchComment(jsonpath, value)
 	} else {
-		err = yamlfile.Patch(jsonpath, value)
+		err = target.Patch(jsonpath, value)
 	}
 
 	if err != nil {
